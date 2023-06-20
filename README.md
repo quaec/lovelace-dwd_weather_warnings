@@ -4,10 +4,13 @@ Lovelace card for Home Assistant showing Deutscher Wetterdienst (DWD) warnings.
 Prerequisites:
 - Enabled sensor integration of [Deutscher Wetterdienst (DWD) Weather Warnings](https://www.home-assistant.io/integrations/dwd_weather_warnings/)
 
-![lovelace_dwdwarnings](https://user-images.githubusercontent.com/11189398/112753082-7bef8480-8fd6-11eb-93a3-8e79ed91b33c.png)
+![lovelace_dwdwarnings](dwd-weather-warnings_screenshot.png)
 
 
-I use a conditional card to hide everything when there are no warnings. Just use your sensor name from your integration and copy&paste as "manual card". 
+I use a conditional card to hide everything when there are no warnings. Just use your sensor name from your integration and copy&paste as "manual card".
+
+If the date of the `end_time` ("Gültig bis") is equal to the current date, the date gets hidden and only the time is shown.
+
 
 ```
 type: conditional
@@ -17,8 +20,8 @@ conditions:
 card:
   type: markdown
   content: >-
-    {% set dwd_sensor = "sensor.dwd_weather_warnings_current_warning_level" %}
-    {% set type_to_img = {
+    {% set dwd_sensor = "sensor.dwd_weather_warnings_current_warning_level" %} {% set
+    type_to_img = {
       11: "",
       12: "",
       13: "",
@@ -83,23 +86,20 @@ card:
     %}
 
     {% for idx in range(1, state_attr(dwd_sensor, "warning_count")+1) %}
-    <table width="100%">
-      <tr>
-        <td>
-        <!--font color="{{state_attr(dwd_sensor, ("warning_" ~ idx)).color}}"-->
-          <h3>{{ state_attr(dwd_sensor, ("warning_" ~ idx)).headline }}</h3>
-        <!--/font-->
-        </td>
-        <td>
-          <img src="{{type_to_img[state_attr(dwd_sensor, ("warning_" ~ idx)).event_code]}}"/>
-        </td>
-      </tr>
-    </table>
-
-
-    *Gültig bis {{ as_timestamp(state_attr(dwd_sensor, ("warning_" ~
-    idx)).end_time) | timestamp_local }} Uhr:*
-    
-    {{ state_attr(dwd_sensor, ("warning_" ~ idx)).description }}
+      <table width="100%">
+        <tr>
+          <td>
+            <h3>{{ state_attr(dwd_sensor, ("warning_" ~ idx)).headline }}</h3>
+          </td>
+          <td>
+            <img src="{{type_to_img[state_attr(dwd_sensor, ("warning_" ~ idx)).event_code]}}"/>
+          </td>
+        </tr>
+      </table>
+      
+      {{ state_attr(dwd_sensor, ("warning_" ~ idx)).description }}
+      {% set end_time = state_attr(dwd_sensor, ("warning_" ~ idx)).end_time.timestamp() %}
+      *Gültig bis {% if end_time | timestamp_custom('%d.%m.%d') != now().timestamp() | timestamp_custom('%d.%m.%d') %}{{ end_time | timestamp_custom('%d.%m.%d, ') }}{% endif %}{{ end_time | timestamp_custom('%H:%M Uhr') }}. Region: {{ state_attr(dwd_sensor, "region_name") }}*
     {% endfor %}
+
 ```
